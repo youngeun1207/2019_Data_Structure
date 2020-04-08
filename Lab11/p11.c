@@ -1,0 +1,160 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<time.h>
+
+typedef struct _DisjointSet
+{
+	int size_maze;
+	int *ptr_arr;
+}DisjointSets;
+
+void init(DisjointSets *sets, DisjointSets *maze_print, int num);
+void Union(DisjointSets *sets, int i, int j);
+int find(DisjointSets *sets, int i);
+void createMaze(DisjointSets *sets, DisjointSets *maze_print, int num);
+void printMaze(DisjointSets *maze_print, int num);
+void freeMaze(DisjointSets *sets, DisjointSets *maze_print);
+
+int main(int argc, char* argv[]){
+	int num, i;
+	FILE *fi = fopen(argv[1], "r");
+	DisjointSets *sets, *maze_print;
+	fscanf(fi, "%d", &num);
+	sets = (DisjointSets*)malloc(sizeof(DisjointSets));
+	maze_print = (DisjointSets*)malloc(sizeof(DisjointSets));
+	init(sets, maze_print, num);
+	createMaze(sets, maze_print, num);
+	printMaze(maze_print, num);
+	freeMaze(sets, maze_print);
+	
+	return 0;
+}
+
+void init(DisjointSets *sets, DisjointSets *maze_print, int num){
+	sets->size_maze = num * num;
+	sets->ptr_arr = malloc(sizeof(int) * (num*num));
+	
+	for(int i = 0; i < sets->size_maze; i++){
+		sets->ptr_arr[i] = 0; // set all parent to 0
+	} 
+
+	maze_print->size_maze = num * num * 2;
+	maze_print->ptr_arr = malloc(sizeof(int) * (num*num*2));
+	
+	for(int i = 0; i < maze_print->size_maze; i++){
+		maze_print->ptr_arr[i] = -1; // have wall
+	}
+}
+
+void Union(DisjointSets *sets, int i, int j){
+	if (sets->ptr_arr[i] > sets->ptr_arr[j])
+		sets->ptr_arr[i] = j;
+	else{
+		if(sets->ptr_arr[i] == sets->ptr_arr[j])
+			sets->ptr_arr[i]--;
+		sets->ptr_arr[j] = i;
+	}
+}
+
+int find(DisjointSets *sets, int i){
+	if(sets->ptr_arr[i] <= 0) // root node (name) of sets
+		return i;
+	return find(sets, sets->ptr_arr[i]);
+}
+
+void createMaze(DisjointSets *sets, DisjointSets *maze_print, int num){
+	int randCell, randWall;
+	int set1, set2;
+	int root1, root2;
+	int first, last;
+	int set = sets->size_maze;
+	srand((unsigned int)time(NULL));
+	while(set > 1){
+		// If last and first Cell joint, break loop
+		first = find(sets, 0); 
+		last = find(sets, sets->size_maze - 1);
+		if(first == last && first != 0 && last != 0){
+			break;
+		}
+
+		randCell = (rand() % sets->size_maze);
+		randWall = randCell*2 + (rand() % 2); // choose vertical or horizontal
+		
+		/*	
+		 _|_|_|						 				 
+		 _|_|_| -> Cell*2 + 0 (horizontal Wall num)	
+		 _|_|_|	   Cell*2 + 1 (Vertical  Wall num)	 
+												
+		(0)1	(1)3	(2)5
+		 0	  2	  4
+		(3)7	(4)9	(5)11
+		 6	  8	 10
+		(6)13	(7)15	(8)17
+		 12	 14	 16	
+		*/
+		
+		// Vertical outer wall
+		if((randWall+1) % (num*2) == 0) continue; 
+		// Horizontal outer wall		
+		if(randWall >= (maze_print->size_maze - (num*2)) && randWall % 2 == 0) continue;
+
+		// Already removed wall
+		if(maze_print->ptr_arr[randWall] == 0) continue;
+
+		set1 = randCell;
+
+		// select a cell over Horizontal wall
+		if(randWall % 2 == 0) set2 = randCell + num;
+
+		// select a cell over Vertical wall
+		else set2 = randCell + 1;
+	
+		root1 = find(sets, set1); 
+		root2 = find(sets, set2);
+
+		// joint set
+		if(root1 == root2 && root2 != 0) continue; 
+
+		// union sets
+		Union(sets, root1, root2);
+		set--;
+
+		// remove wall
+		maze_print->ptr_arr[randWall] = 0;
+	}
+}
+
+void printMaze(DisjointSets *maze_print, int num){
+	maze_print->ptr_arr[maze_print->size_maze - 1] = 0; // open Exit
+	// Top line
+	for(int i = 0; i < num; i++)
+		printf(" _");
+	printf("\n");
+
+	// Start
+	printf(" ");
+	
+	for(int i = 0; i < maze_print->size_maze; i++){	
+		if(i % 2 == 0){
+			if(maze_print->ptr_arr[i] == -1) 
+				printf("_");
+			else
+				printf(" ");
+		}
+		else{
+			if(maze_print->ptr_arr[i] == -1) 
+				printf("|");
+			else
+				printf(" ");
+		}
+		if(i != maze_print->size_maze-1 && (i+1) % (num*2) == 0) printf("\n|");
+	}
+	printf("\n");
+}
+
+void freeMaze(DisjointSets *sets, DisjointSets *maze_print){
+	free(sets->ptr_arr);
+	free(maze_print->ptr_arr);
+	free(sets);
+	free(maze_print);
+}

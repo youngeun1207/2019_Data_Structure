@@ -1,0 +1,134 @@
+#include<stdio.h>
+#include<stdlib.h>
+
+typedef struct AVLNode* PtrToNode;
+typedef PtrToNode Position;
+typedef PtrToNode AVLTree;
+
+struct AVLNode{
+	int value;
+	AVLTree left;
+	AVLTree right;
+	int height;
+};
+
+int Height(AVLTree Node);
+int Max(int a, int b);
+AVLTree Insert(int X, AVLTree T);
+void PrintInorder(AVLTree T);
+Position SingleRotateWithLeft(Position K2);
+Position SingleRotateWithRight(Position K2);
+void DeleteTree(AVLTree T);
+
+int main(int argc, char **argv){
+	FILE *fp = fopen(argv[1], "r");
+	AVLTree myTree = NULL;
+	int num;
+	if(fp == NULL){
+		printf("There is no file : %s\n", argv[1]);
+		exit(-1);
+	}
+	while(fscanf(fp, "%d", &num) != EOF){
+		myTree = Insert(num, myTree);
+		PrintInorder(myTree);
+		printf("\n");
+	}
+	DeleteTree(myTree);
+	return 0;
+}
+
+int Height(AVLTree Node){
+	if(Node == NULL)
+		return -1;
+	else{
+		Node->height = Max(Height(Node->left), Height(Node->right)) + 1;
+		return Node->height;
+	}
+}
+
+void PrintInorder(AVLTree T){
+	if(T != NULL){
+		PrintInorder(T->left);
+		printf("%d(%d) ", T->value, T->height);
+		PrintInorder(T->right);
+	}
+}
+
+AVLTree Insert(int X, AVLTree T){
+	if(T == NULL){
+		T = (AVLTree)malloc(sizeof(struct AVLNode));
+		if(T == NULL)
+		{
+			printf("Out of space!");
+		}
+
+		else
+		{
+			T->value = X;
+			T->left = NULL;
+			T->right = NULL;
+			T->height = 0;
+		}
+	}
+	else if(X < T->value)
+	{
+		T->left = Insert(X, T->left);
+		if(Height(T->left) - Height(T->right) == 2){
+			if(X < T->left->value)
+				T = SingleRotateWithLeft(T);
+		}
+	}
+	else if(X > T->value)
+	{
+		T->right = Insert(X, T->right);
+		if(Height(T->right) - Height(T->left) == 2){
+			if(X > T->right->value)
+				T = SingleRotateWithRight(T);
+		}
+	}
+	else // X == T->value
+	{
+		printf("[Error] %d already in the tree!\n", X);
+	}
+	T->height = Max(Height(T->left), Height(T->right)) + 1;
+	return T;
+}
+
+int Max(int a, int b){
+	return (a > b) ? a : b;
+}
+
+Position SingleRotateWithLeft(Position K2){
+	Position K1;
+
+	K1 = K2->left;
+
+	K2->left = K1->right;
+	K1->right = K2;
+
+	K2->height = Max(Height(K2->left), Height(K2->right)) + 1;
+	K1->height = Max(Height(K1->left), K2->height) + 1;
+
+	return K1;
+}
+Position SingleRotateWithRight(Position K2){
+	Position K1;
+
+	K1 = K2->right;
+
+	K2->right = K2->left;
+	K1->left = K2;
+
+	K2->height = Max(Height(K2->right), Height(K2->left)) + 1;
+	K1->height = Max(Height(K1->right), K2->height) + 1;
+
+	return K1;
+}
+
+void DeleteTree(AVLTree T){
+	if(T != NULL){
+		DeleteTree(T->left);
+		DeleteTree(T->right);
+		free(T);
+	}
+}
